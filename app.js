@@ -189,19 +189,24 @@ document.getElementById('btn-expired-export').addEventListener('click', async ()
     }
 });
 
+// Guard contra doble ejecución: Supabase v2 dispara SIGNED_IN + INITIAL_SESSION
+// al cargar la página con sesión activa. Sin esto haríamos las queries dos veces.
+let lastHandledUserId = null;
+
 // Listener de estado de autenticación
 supabase.auth.onAuthStateChange(async (event, session) => {
-    console.log('[DEBUG] Auth event:', event, 'session?:', !!session);
     if (session) {
         const user = session.user;
+
+        // Si ya inicializamos para este user, no repetir todo el flujo
+        if (lastHandledUserId === user.id) return;
+        lastHandledUserId = user.id;
+
         currentUser = user;
-        console.log('[DEBUG] User ID:', user.id, 'email:', user.email);
 
         // --- Chequear suscripción ANTES de mostrar la app ---
         const sub = await checkSubscription(user.id);
-        console.log('[DEBUG] Subscription result:', sub);
         if (sub.expired) {
-            console.log('[DEBUG] Mostrando pantalla bloqueada');
             showExpiredScreen({ tipo: sub.tipo });
             return;
         }
@@ -227,6 +232,7 @@ supabase.auth.onAuthStateChange(async (event, session) => {
         loadTemplates();
     } else {
         currentUser = null;
+        lastHandledUserId = null;
         loginScreen.classList.add('active');
         mainApp.style.display = 'none';
         document.getElementById('expired-overlay').style.display = 'none';
@@ -276,8 +282,6 @@ const loadData = async () => {
         .select('id, usuario_id, nombre, telefono, servicio, monto_mensual, fecha_vencimiento, estado, fecha_creacion')
         .eq('usuario_id', currentUser.id)
         .order('fecha_creacion', { ascending: false });
-
-    console.log('[DEBUG] loadData →', { count: data?.length, error });
 
     if (error) {
         console.error('Error cargando clientes:', error);
@@ -1285,12 +1289,12 @@ window.insertTag = (tag) => {
 
 const loadTemplates = async () => {
     if(!currentUser) return;
-    
+
     const { data, error } = await supabase
         .from('configuraciones')
         .select('*')
         .eq('usuario_id', currentUser.id)
-        .single();
+        .maybeSingle();
         
     if (data) {
         if(data.wp_pendiente) wpTemplates.pending = data.wp_pendiente;
