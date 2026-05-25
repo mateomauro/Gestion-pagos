@@ -10,6 +10,8 @@
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <!-- Supabase CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- jsPDF para generar recibos -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
     <!-- Toast Notifications Container -->
@@ -51,11 +53,10 @@
                     Continuar con Google
                 </button>
 
-            <!-- Mensaje de acceso pendiente (oculto por defecto) -->
-            <div id="pending-approval" style="display: none; margin-top: 20px; background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.4); border-radius: 10px; padding: 14px; text-align: center;">
-                <p style="color: #fcd34d; font-weight: 600; margin-bottom: 4px;">Acceso pendiente ⏳</p>
-                <p style="color: var(--text-secondary); font-size: 13px;">Tu cuenta fue registrada pero aún no fue aprobada. Contactate con el administrador para obtener acceso.</p>
-            </div>
+                <p style="margin-top: 28px; font-size: 12px; color: var(--text-secondary); text-align: center; line-height: 1.6;">
+                    Al ingresar aceptás los <a href="terminos.html" target="_blank" style="color: var(--accent-primary);">Términos</a> y la <a href="privacidad.html" target="_blank" style="color: var(--accent-primary);">Política de Privacidad</a>.
+                </p>
+
             </div>
         </div>
     </div>
@@ -85,10 +86,10 @@
                 </a>
             </nav>
             <div class="user-profile">
-                <img src="https://ui-avatars.com/api/?name=Admin+Gym&background=random" alt="User" class="avatar">
+                <img src="" alt="User" class="avatar" style="visibility: hidden;">
                 <div class="user-info">
-                    <span class="user-name">Admin Gym</span>
-                    <span class="user-role">Administrador</span>
+                    <span class="user-name"></span>
+                    <span class="user-role">Mi cuenta</span>
                 </div>
             </div>
         </aside>
@@ -98,17 +99,27 @@
             <header class="top-header">
                 <div class="header-titles">
                     <h1 id="page-title">Dashboard</h1>
-                    <p>Mes actual: <span id="current-month">Mayo 2026</span></p>
+                    <p id="header-subtitle">Mes actual: <span id="current-month"></span></p>
                 </div>
-                <button class="btn-primary" id="add-client-btn">
+                <button class="btn-primary" id="add-client-btn" style="display: none;">
                     <i class="ph ph-plus"></i> Nuevo Cliente
                 </button>
             </header>
 
             <!-- VISTA: DASHBOARD -->
             <div id="view-dashboard" class="app-view">
+                <!-- Empty state (cuando no hay clientes) -->
+                <section id="dashboard-empty" class="glass-panel empty-state" style="display: none;">
+                    <div class="empty-state-icon"><i class="ph ph-rocket-launch"></i></div>
+                    <h2 class="empty-state-title">¡Bienvenido a CobroGest!</h2>
+                    <p class="empty-state-text">Todavía no cargaste ningún cliente. Empezá por agregar tu primer alumno o cliente para ver las estadísticas acá.</p>
+                    <button class="btn-primary" id="dashboard-empty-cta">
+                        <i class="ph ph-plus"></i> Cargar mi primer cliente
+                    </button>
+                </section>
+
                 <!-- KPI Cards -->
-                <section class="kpi-grid">
+                <section class="kpi-grid" id="kpi-grid">
                 
                 <div class="kpi-card glass-panel" style="border-bottom: 2px solid #818cf8;">
                     <div class="kpi-header">
@@ -130,7 +141,7 @@
                     </div>
                     <div class="kpi-value" id="kpi-collected">$0</div>
                     <div class="kpi-progress">
-                        <div class="progress-bar collected-bar" style="width: 65%;"></div>
+                        <div class="progress-bar collected-bar" style="width: 0%;"></div>
                     </div>
                 </div>
 
@@ -143,7 +154,7 @@
                     </div>
                     <div class="kpi-value" id="kpi-pending">$0</div>
                     <div class="kpi-progress">
-                        <div class="progress-bar pending-bar" style="width: 25%;"></div>
+                        <div class="progress-bar pending-bar" style="width: 0%;"></div>
                     </div>
                 </div>
 
@@ -156,7 +167,7 @@
                     </div>
                     <div class="kpi-value" id="kpi-overdue">$0</div>
                     <div class="kpi-progress">
-                        <div class="progress-bar overdue-bar" style="width: 10%;"></div>
+                        <div class="progress-bar overdue-bar" style="width: 0%;"></div>
                     </div>
                 </div>
             </section>
@@ -168,17 +179,31 @@
                 <section class="clients-section glass-panel">
                 <div class="section-header">
                     <h2>Estado de Alumnos / Clientes</h2>
-                    <div class="search-filter">
-                        <div class="search-box">
-                            <i class="ph ph-magnifying-glass"></i>
-                            <input type="text" id="search-input" placeholder="Buscar alumno...">
+                    <div class="section-header-actions">
+                        <div class="csv-buttons">
+                            <button class="btn-csv" id="btn-import-csv" title="Importar CSV">
+                                <i class="ph ph-upload-simple"></i> Importar CSV
+                            </button>
+                            <input type="file" id="csv-file-input" accept=".csv" style="display: none;">
+                            <button class="btn-csv" id="btn-template-csv" title="Descargar plantilla CSV de ejemplo">
+                                <i class="ph ph-file-csv"></i> Plantilla
+                            </button>
+                            <button class="btn-csv" id="btn-export-csv" title="Exportar CSV">
+                                <i class="ph ph-download-simple"></i> Exportar CSV
+                            </button>
                         </div>
-                        <select id="status-filter" class="filter-select">
-                            <option value="all">Todos los estados</option>
-                            <option value="paid">Al día</option>
-                            <option value="pending">Pendiente</option>
-                            <option value="overdue">Vencido</option>
-                        </select>
+                        <div class="search-filter">
+                            <div class="search-box">
+                                <i class="ph ph-magnifying-glass"></i>
+                                <input type="text" id="search-input" placeholder="Buscar alumno...">
+                            </div>
+                            <select id="status-filter" class="filter-select">
+                                <option value="all">Todos los estados</option>
+                                <option value="paid">Al día</option>
+                                <option value="pending">Pendiente</option>
+                                <option value="overdue">Vencido</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
 
@@ -221,6 +246,7 @@
                                     <th>Servicio</th>
                                     <th>Método</th>
                                     <th>Monto Cobrado</th>
+                                    <th></th>
                                 </tr>
                             </thead>
                             <tbody id="receipts-tbody">
@@ -358,6 +384,112 @@
             </form>
         </div>
     </div>
+
+    <!-- Modal Enviar Recibo por WhatsApp -->
+    <div class="modal-overlay" id="receipt-modal">
+        <div class="modal-content glass-panel" style="max-width: 450px;">
+            <div class="modal-header">
+                <h2>¡Pago Registrado! 🎉</h2>
+                <button class="close-modal-btn" id="close-receipt-modal"><i class="ph ph-x"></i></button>
+            </div>
+            <div style="text-align: center; margin-bottom: 24px;">
+                <div style="width: 64px; height: 64px; background: rgba(16, 185, 129, 0.15); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
+                    <i class="ph ph-check-circle" style="font-size: 32px; color: #10b981;"></i>
+                </div>
+                <p style="color: var(--text-secondary); line-height: 1.6;" id="receipt-summary"></p>
+            </div>
+            <div style="background: rgba(15, 23, 42, 0.5); border: 1px solid var(--border-color); border-radius: 10px; padding: 16px; margin-bottom: 24px;">
+                <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">Vista previa del mensaje:</p>
+                <p style="font-size: 14px; color: var(--text-primary); line-height: 1.6; white-space: pre-wrap;" id="receipt-preview"></p>
+            </div>
+            <div class="modal-actions" style="flex-direction: column; gap: 8px;">
+                <a href="#" id="btn-send-receipt-wp" target="_blank" class="btn-primary" style="width: 100%; justify-content: center; background: #25D366; text-decoration: none; color: white;">
+                    <i class="ph ph-whatsapp-logo"></i> Enviar Recibo por WhatsApp
+                </a>
+                <button type="button" id="btn-download-receipt-pdf" class="btn-secondary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    <i class="ph ph-file-pdf"></i> Descargar PDF
+                </button>
+                <button type="button" class="btn-secondary" id="btn-skip-receipt" style="width: 100%;">Omitir</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Vista Previa CSV -->
+    <div class="modal-overlay" id="csv-preview-modal">
+        <div class="modal-content glass-panel" style="max-width: 960px;">
+            <div class="modal-header">
+                <h2>Vista previa de importación</h2>
+                <button class="close-modal-btn" id="close-csv-preview"><i class="ph ph-x"></i></button>
+            </div>
+
+            <div id="csv-mapping-info" style="background: rgba(99,102,241,0.08); border: 1px solid rgba(99,102,241,0.25); border-radius: 10px; padding: 14px 16px; margin-bottom: 16px; font-size: 13px;">
+                <!-- JS: muestra qué columnas se detectaron -->
+            </div>
+
+            <div id="csv-summary" style="display: flex; gap: 16px; margin-bottom: 16px;">
+                <!-- JS: cards de "X listos para importar / Y con errores" -->
+            </div>
+
+            <div class="table-responsive" style="max-height: 380px; overflow-y: auto;">
+                <table class="clients-table csv-preview-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Nombre</th>
+                            <th>Teléfono</th>
+                            <th>Servicio</th>
+                            <th>Monto</th>
+                            <th>Vencimiento</th>
+                            <th>Estado</th>
+                            <th>Resultado</th>
+                        </tr>
+                    </thead>
+                    <tbody id="csv-preview-tbody">
+                        <!-- JS render -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="modal-actions">
+                <button type="button" class="btn-secondary" id="cancel-csv-import">Cancelar</button>
+                <button type="button" class="btn-primary" id="confirm-csv-import">Importar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Confirmación genérico -->
+    <div class="modal-overlay" id="confirm-modal">
+        <div class="modal-content glass-panel" style="max-width: 420px;">
+            <div class="modal-header">
+                <h2 id="confirm-title">¿Estás seguro?</h2>
+                <button class="close-modal-btn" id="close-confirm-modal"><i class="ph ph-x"></i></button>
+            </div>
+            <p id="confirm-message" style="color: var(--text-secondary); line-height: 1.6; margin-bottom: 24px;"></p>
+            <div class="modal-actions">
+                <button type="button" class="btn-secondary" id="confirm-cancel-btn">Cancelar</button>
+                <button type="button" class="btn-primary" id="confirm-accept-btn" style="background: var(--status-overdue); border-color: var(--status-overdue);">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Historial de Cliente -->
+    <div class="modal-overlay" id="history-modal">
+        <div class="modal-content glass-panel" style="max-width: 680px;">
+            <div class="modal-header">
+                <h2 id="history-title">Historial</h2>
+                <button class="close-modal-btn" id="close-history-modal"><i class="ph ph-x"></i></button>
+            </div>
+            <div id="history-body">
+                <!-- JS render -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Botón flotante WhatsApp soporte -->
+    <a href="https://wa.me/5492494374128?text=Hola%20Mateo%2C%20te%20escribo%20desde%20CobroGest.%20" target="_blank" rel="noopener noreferrer" class="wp-support-fab" title="Hablar con soporte por WhatsApp">
+        <i class="ph ph-whatsapp-logo"></i>
+        <span class="wp-tooltip">¿Necesitás ayuda?</span>
+    </a>
 
     <script src="app.js"></script>
 </body>
