@@ -98,7 +98,7 @@ const loadData = async () => {
 
     const { data, error } = await supabase
         .from('clientes')
-        .select('id, usuario_id, nombre, telefono, email, servicio, monto_mensual, fecha_vencimiento, estado, fecha_creacion')
+        .select('id, usuario_id, nombre, telefono, servicio, monto_mensual, fecha_vencimiento, estado, fecha_creacion')
         .eq('usuario_id', currentUser.id)
         .order('fecha_creacion', { ascending: false });
 
