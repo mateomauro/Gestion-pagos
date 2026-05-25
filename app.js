@@ -812,37 +812,49 @@ document.getElementById('payment-form').addEventListener('submit', async (e) => 
     const [year, month, day] = client.fecha_vencimiento.split('-');
     const currentDue = new Date(year, month - 1, day);
     currentDue.setMonth(currentDue.getMonth() + 1);
-    
-    const newDueDate = currentDue.getFullYear() + '-' + 
-                       String(currentDue.getMonth() + 1).padStart(2, '0') + '-' + 
+
+    const newDueDate = currentDue.getFullYear() + '-' +
+                       String(currentDue.getMonth() + 1).padStart(2, '0') + '-' +
                        String(currentDue.getDate()).padStart(2, '0');
 
-    const { error: err1 } = await supabase
+    // 1. Insertar el pago PRIMERO (es el dato más crítico que no podemos perder)
+    const { error: errPago } = await supabase.from('pagos').insert([{
+        cliente_id: id,
+        usuario_id: currentUser.id,
+        monto_pagado: amount,
+        metodo_pago: method
+    }]);
+
+    if (errPago) {
+        btn.textContent = originalText;
+        btn.disabled = false;
+        return showToast('Error al registrar el pago: ' + errPago.message, 'error');
+    }
+
+    // 2. Recién ahora actualizar al cliente (estado + nueva fecha de vencimiento)
+    const { error: errCliente } = await supabase
         .from('clientes')
         .update({ estado: 'al_dia', fecha_vencimiento: newDueDate })
         .eq('id', id)
         .eq('usuario_id', currentUser.id);
-        
-    if (err1) {
+
+    if (errCliente) {
         btn.textContent = originalText;
         btn.disabled = false;
-        return showToast('Error al actualizar: ' + err1.message, 'error');
+        // El pago ya quedó registrado en DB pero el cliente no cambió de estado.
+        // Avisamos para que el usuario lo corrija a mano si hace falta.
+        showToast('Pago guardado, pero no se pudo actualizar el estado del cliente. Refrescá la página.', 'error');
+        loadReceipts();
+        return;
     }
 
-    await supabase.from('pagos').insert([{ 
-        cliente_id: id, 
-        usuario_id: currentUser.id, 
-        monto_pagado: amount,
-        metodo_pago: method
-    }]);
-    
     showToast('¡Pago registrado con éxito! 💵');
-    loadReceipts(); 
+    loadReceipts();
     client.estado = 'al_dia';
     client.fecha_vencimiento = newDueDate;
     updateUI();
     closePaymentModal();
-    
+
     btn.textContent = originalText;
     btn.disabled = false;
 
