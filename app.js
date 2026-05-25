@@ -563,7 +563,7 @@ const renderTable = () => {
                     <div class="client-avatar">${escapeHtml(getInitials(client.nombre))}</div>
                     <div>
                         <div class="client-name">${escapeHtml(client.nombre)}</div>
-                        <div class="client-email">${escapeHtml(client.email || '-')}</div>
+                        ${client.telefono ? `<div class="client-email">${escapeHtml(client.telefono)}</div>` : ''}
                     </div>
                 </div>
             </td>
