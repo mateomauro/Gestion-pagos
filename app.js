@@ -1665,6 +1665,28 @@ document.getElementById('confirm-csv-import').addEventListener('click', async ()
     btn.textContent = 'Importando...';
     btn.disabled = true;
 
+    // Auto-crear servicios que aparezcan en el CSV pero no existan todavía
+    // (sin esto, los clientes importados con servicios no listados se rompen al editarlos)
+    const serviciosEnCsv = [...new Set(
+        validRows.map(r => (r.servicio || '').trim()).filter(Boolean)
+    )];
+    const existingServicios = new Set(services.map(s => s.nombre));
+    const nuevosServicios = serviciosEnCsv.filter(s => !existingServicios.has(s));
+
+    if (nuevosServicios.length > 0) {
+        const servicioInserts = nuevosServicios.map(nombre => ({
+            usuario_id: currentUser.id,
+            nombre
+        }));
+        const { error: servErr } = await supabase.from('servicios').insert(servicioInserts);
+        if (servErr) {
+            console.error('Error creando servicios nuevos desde CSV:', servErr);
+            // No bloqueamos el import por esto, los clientes igual se guardan
+        } else {
+            await loadServices(); // refrescar lista en memoria + dropdown
+        }
+    }
+
     const payload = validRows.map(r => ({
         usuario_id: currentUser.id,
         nombre: r.nombre,
