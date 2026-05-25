@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Política de Privacidad - CobroGest</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="landing.css">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <style>
+        .legal-page { max-width: 820px; margin: 0 auto; padding: 60px 24px 80px; }
+        .legal-page h1 { font-size: 36px; margin-bottom: 8px; }
+        .legal-page .muted { color: var(--text-secondary); margin-bottom: 40px; font-size: 14px; }
+        .legal-page h2 { font-size: 22px; margin: 32px 0 12px; color: var(--text-primary); }
+        .legal-page p, .legal-page li { color: var(--text-secondary); line-height: 1.7; margin-bottom: 10px; }
+        .legal-page ul { padding-left: 22px; margin-bottom: 16px; }
+        .legal-page a { color: var(--accent-secondary); }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <div class="logo">
+                <i class="ph ph-wallet"></i>
+                <span>CobroGest</span>
+            </div>
+            <div class="nav-links">
+                <a href="index.html">Inicio</a>
+                <a href="app.html" class="btn-login">Ingresar</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="legal-page">
+        <h1>Política de Privacidad</h1>
+        <p class="muted">Cumplimos con la Ley 25.326 de Protección de Datos Personales (Argentina). Última actualización: mayo de 2026.</p>
+
+        <h2>1. Qué datos guardamos</h2>
+        <p>CobroGest guarda dos tipos de información:</p>
+        <ul>
+            <li><strong>Tu cuenta:</strong> email, contraseña encriptada y (si te logueás con Google) nombre y foto de perfil.</li>
+            <li><strong>Datos de tu negocio:</strong> los clientes que cargás (nombre, teléfono, servicio contratado, monto y estado de pago) y el historial de pagos registrados.</li>
+        </ul>
+
+        <h2>2. Para qué los usamos</h2>
+        <p>Los datos se usan exclusivamente para que vos puedas operar tu negocio dentro de la plataforma. No vendemos, alquilamos ni cedemos tu información ni la de tus clientes a terceros con fines comerciales.</p>
+
+        <h2>3. Dónde se almacenan</h2>
+        <p>Tus datos viven en servidores de <a href="https://supabase.com/privacy" target="_blank" rel="noopener noreferrer">Supabase</a> (proveedor de base de datos) y la aplicación se sirve desde <a href="https://www.netlify.com/privacy/" target="_blank" rel="noopener noreferrer">Netlify</a>. Ambos cuentan con certificaciones de seguridad estándar de la industria.</p>
+
+        <h2>4. Quién accede a tus datos</h2>
+        <p>Solo vos accedés a los datos de tu cuenta. Tenemos Row Level Security (RLS) activado en la base de datos, lo que significa que ningún otro usuario de CobroGest puede ver tu información, ni siquiera por error.</p>
+        <p>El responsable técnico (Mateo Mauro) tiene acceso administrativo a la base de datos por motivos de soporte y mantenimiento, pero no consulta datos individuales salvo que vos lo autorices expresamente para resolver un problema puntual.</p>
+
+        <h2>5. Tus derechos (ARCO)</h2>
+        <p>Según la Ley 25.326, en cualquier momento podés:</p>
+        <ul>
+            <li><strong>Acceder</strong> a todos los datos que tenemos sobre vos (te enviamos un export en CSV).</li>
+            <li><strong>Rectificar</strong> datos incorrectos o desactualizados.</li>
+            <li><strong>Cancelar / eliminar</strong> tu cuenta y todos los datos asociados.</li>
+            <li><strong>Oponerte</strong> a usos específicos de tu información.</li>
+        </ul>
+        <p>Para ejercer cualquiera de estos derechos, escribinos por WhatsApp al <a href="https://wa.me/5492494374128" target="_blank" rel="noopener noreferrer">+54 9 249 437-4128</a> o por email a <a href="mailto:dev1@theautomationpartner.com">dev1@theautomationpartner.com</a>. Respondemos dentro de los 10 días hábiles.</p>
+
+        <h2>6. Datos de tus clientes (alumnos del gimnasio)</h2>
+        <p>Cuando cargás clientes en CobroGest (con su nombre y teléfono), sos vos el responsable del tratamiento de esos datos. Asegurate de tener el consentimiento de tus clientes para guardarlos y enviarles mensajes de WhatsApp. CobroGest actúa solo como herramienta de gestión.</p>
+
+        <h2>7. Cookies y tecnologías similares</h2>
+        <p>Usamos exclusivamente cookies y almacenamiento local del navegador necesarios para mantener tu sesión iniciada. No usamos cookies de seguimiento ni publicidad. No usamos servicios de tracking de terceros tipo Google Analytics o Meta Pixel.</p>
+
+        <h2>8. Contacto</h2>
+        <p>Para cualquier consulta sobre privacidad, escribinos a <a href="mailto:dev1@theautomationpartner.com">dev1@theautomationpartner.com</a> o por WhatsApp al <a href="https://wa.me/5492494374128" target="_blank" rel="noopener noreferrer">+54 9 249 437-4128</a>.</p>
+
+        <p style="margin-top: 40px;"><a href="index.html">← Volver al inicio</a></p>
+    </main>
+
+    <!-- Botón flotante WhatsApp -->
+    <a href="https://wa.me/5492494374128?text=Hola%20Mateo%2C%20te%20escribo%20por%20la%20privacidad%20de%20CobroGest" target="_blank" rel="noopener noreferrer" class="wp-support-fab" title="Hablar por WhatsApp">
+        <i class="ph ph-whatsapp-logo"></i>
+        <span class="wp-tooltip">¿Tenés una pregunta?</span>
+    </a>
+</body>
+</html>
