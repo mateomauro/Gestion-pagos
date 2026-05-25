@@ -61,6 +61,32 @@
         </div>
     </div>
 
+    <!-- Pantalla bloqueada por suscripción vencida -->
+    <div id="expired-overlay" class="expired-overlay" style="display: none;">
+        <div class="expired-box glass-panel">
+            <div class="expired-icon">
+                <i class="ph ph-lock-key"></i>
+            </div>
+            <h2 id="expired-title">Tu prueba terminó</h2>
+            <p id="expired-message">Esperamos que CobroGest te haya servido para ordenar tus cobros. Si querés seguir usándolo, mandame un WhatsApp y te paso los detalles del plan.</p>
+            <div class="expired-info">
+                <i class="ph ph-shield-check"></i>
+                <span>Tus datos están guardados intactos. Cuando reactives tu cuenta, vas a encontrar todo como lo dejaste.</span>
+            </div>
+            <div class="expired-actions">
+                <a href="https://wa.me/5492494374128?text=Hola%20Mateo%2C%20se%20me%20vencio%20la%20prueba%20de%20CobroGest%20y%20quiero%20seguir%20usandolo" target="_blank" rel="noopener noreferrer" class="btn-primary expired-wp-btn">
+                    <i class="ph ph-whatsapp-logo"></i> Hablar con Mateo
+                </a>
+                <button type="button" class="btn-secondary" id="btn-expired-export">
+                    <i class="ph ph-download-simple"></i> Descargar mis datos en CSV
+                </button>
+                <button type="button" class="btn-secondary" id="btn-expired-logout">
+                    <i class="ph ph-sign-out"></i> Cerrar sesión
+                </button>
+            </div>
+        </div>
+    </div>
+
     <div class="app-container" id="main-app" style="display: none;">
         <!-- Sidebar Navigation -->
         <aside class="sidebar">
@@ -96,6 +122,13 @@
 
         <!-- Main Content Area -->
         <main class="main-content">
+            <!-- Banner de trial (oculto por defecto) -->
+            <div id="trial-banner" class="trial-banner" style="display: none;">
+                <i class="ph ph-sparkle"></i>
+                <span id="trial-banner-text"></span>
+                <a id="trial-banner-cta" href="#" target="_blank" rel="noopener noreferrer" class="trial-banner-cta">Pasar a plan pago</a>
+            </div>
+
             <header class="top-header">
                 <div class="header-titles">
                     <h1 id="page-title">Dashboard</h1>

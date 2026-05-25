@@ -33,16 +33,189 @@ document.getElementById('btn-google-login').addEventListener('click', async () =
     if (error) showToast('Error al iniciar sesión con Google: ' + error.message, 'error');
 });
 
+// --- SUSCRIPCIONES ---
+const SUPPORT_WP_BASE = 'https://wa.me/5492494374128';
+
+// Devuelve { expired, daysLeft, tipo } o { expired: false, daysLeft: null } si no se puede determinar
+const checkSubscription = async (userId) => {
+    const { data, error } = await supabase
+        .from('suscripciones')
+        .select('tipo, vence_el')
+        .eq('usuario_id', userId)
+        .maybeSingle();
+
+    if (error) {
+        console.error('Error chequeando suscripción:', error);
+        // Fail-open: no bloquear si hay un error transitorio
+        return { expired: false, daysLeft: null, tipo: null };
+    }
+
+    if (!data) {
+        // El trigger debería haberle creado una. Si no hay, bloquear (no romper la app).
+        return { expired: true, daysLeft: 0, tipo: null };
+    }
+
+    if (data.tipo === 'cancelado') {
+        return { expired: true, daysLeft: 0, tipo: 'cancelado' };
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const [year, month, day] = data.vence_el.split('-');
+    const venceDate = new Date(year, month - 1, day);
+    venceDate.setHours(0, 0, 0, 0);
+
+    const diffMs = venceDate - today;
+    const daysLeft = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
+    return {
+        expired: daysLeft <= 0,
+        daysLeft,
+        tipo: data.tipo
+    };
+};
+
+const showTrialBanner = ({ daysLeft, tipo }) => {
+    const banner = document.getElementById('trial-banner');
+    const text = document.getElementById('trial-banner-text');
+    const cta = document.getElementById('trial-banner-cta');
+    if (!banner || daysLeft === null) return;
+
+    // Si es pago y faltan más de 7 días, no mostrar nada
+    if (tipo === 'pago' && daysLeft > 7) {
+        banner.style.display = 'none';
+        return;
+    }
+
+    const warning = daysLeft <= 7;
+    banner.classList.toggle('warning', warning);
+
+    if (tipo === 'pago') {
+        text.textContent = `Tu plan vence en ${daysLeft} día${daysLeft === 1 ? '' : 's'}. Renová para no perder el acceso.`;
+        cta.textContent = 'Renovar';
+        cta.href = `${SUPPORT_WP_BASE}?text=${encodeURIComponent('Hola Mateo, quiero renovar mi plan de CobroGest')}`;
+    } else {
+        text.textContent = `Te quedan ${daysLeft} día${daysLeft === 1 ? '' : 's'} de prueba gratis.`;
+        cta.textContent = 'Pasar a plan pago';
+        cta.href = `${SUPPORT_WP_BASE}?text=${encodeURIComponent('Hola Mateo, quiero pasar mi cuenta de CobroGest a plan pago')}`;
+    }
+
+    banner.style.display = 'flex';
+};
+
+const showExpiredScreen = ({ tipo }) => {
+    document.getElementById('main-app').style.display = 'none';
+    loginScreen.classList.remove('active');
+    document.getElementById('expired-overlay').style.display = 'flex';
+
+    if (tipo === 'cancelado') {
+        document.getElementById('expired-title').textContent = 'Tu cuenta está pausada';
+        document.getElementById('expired-message').textContent = 'Tu acceso fue suspendido temporalmente. Si pensás que es un error, escribime por WhatsApp y lo revisamos.';
+    }
+};
+
+// Handlers de la pantalla bloqueada
+document.getElementById('btn-expired-logout').addEventListener('click', async () => {
+    await supabase.auth.signOut();
+    document.getElementById('expired-overlay').style.display = 'none';
+    location.reload();
+});
+
+document.getElementById('btn-expired-export').addEventListener('click', async () => {
+    if (!currentUser) return showToast('No hay sesión activa', 'error');
+
+    const btn = document.getElementById('btn-expired-export');
+    const originalHTML = btn.innerHTML;
+    btn.innerHTML = '<i class="ph ph-spinner"></i> Generando…';
+    btn.disabled = true;
+
+    try {
+        const [clientesRes, pagosRes] = await Promise.all([
+            supabase.from('clientes')
+                .select('id, nombre, telefono, servicio, monto_mensual, fecha_vencimiento, estado, fecha_creacion')
+                .eq('usuario_id', currentUser.id),
+            supabase.from('pagos')
+                .select('id, cliente_id, monto_pagado, metodo_pago, fecha_pago')
+                .eq('usuario_id', currentUser.id)
+        ]);
+
+        if (clientesRes.error || pagosRes.error) throw new Error('Error consultando Supabase');
+
+        const clientes = clientesRes.data || [];
+        const pagos = pagosRes.data || [];
+        const statusNames = { 'al_dia': 'Al día', 'pendiente': 'Pendiente', 'vencido': 'Vencido' };
+        const sections = [];
+
+        sections.push('# CLIENTES');
+        sections.push(['Nombre','Telefono','Servicio','Monto','Vencimiento','Estado','Creado']
+            .map(h => `"${h}"`).join(','));
+        clientes.forEach(c => {
+            sections.push([
+                c.nombre, c.telefono || '', c.servicio,
+                c.monto_mensual, c.fecha_vencimiento,
+                statusNames[c.estado] || c.estado, c.fecha_creacion || ''
+            ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(','));
+        });
+
+        sections.push('');
+        sections.push('# HISTORIAL DE PAGOS');
+        sections.push(['Cliente','Monto','Metodo','Fecha']
+            .map(h => `"${h}"`).join(','));
+        const clientesById = Object.fromEntries(clientes.map(c => [c.id, c.nombre]));
+        pagos.forEach(p => {
+            sections.push([
+                clientesById[p.cliente_id] || '(cliente eliminado)',
+                p.monto_pagado, p.metodo_pago || '', p.fecha_pago
+            ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(','));
+        });
+
+        const csvContent = sections.join('\n');
+        const BOM = '﻿';
+        const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `cobrogest_backup_${new Date().toISOString().split('T')[0]}.csv`;
+        link.click();
+        URL.revokeObjectURL(url);
+
+        showToast(`Backup descargado: ${clientes.length} clientes, ${pagos.length} pagos 📦`);
+    } catch (err) {
+        console.error(err);
+        showToast('Error generando el backup. Probá de nuevo.', 'error');
+    } finally {
+        btn.innerHTML = originalHTML;
+        btn.disabled = false;
+    }
+});
+
 // Listener de estado de autenticación
 supabase.auth.onAuthStateChange(async (event, session) => {
+    console.log('[DEBUG] Auth event:', event, 'session?:', !!session);
     if (session) {
         const user = session.user;
+        currentUser = user;
+        console.log('[DEBUG] User ID:', user.id, 'email:', user.email);
+
+        // --- Chequear suscripción ANTES de mostrar la app ---
+        const sub = await checkSubscription(user.id);
+        console.log('[DEBUG] Subscription result:', sub);
+        if (sub.expired) {
+            console.log('[DEBUG] Mostrando pantalla bloqueada');
+            showExpiredScreen({ tipo: sub.tipo });
+            return;
+        }
+
         loginScreen.classList.remove('active');
         mainApp.style.display = 'flex';
-        
+        document.getElementById('expired-overlay').style.display = 'none';
+
+        // Banner de días restantes si corresponde
+        showTrialBanner(sub);
+
         const name = user.user_metadata?.full_name || user.email.split('@')[0];
         const avatar = user.user_metadata?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=6366f1&color=fff`;
-        
+
         document.querySelector('.user-name').textContent = name;
         const avatarEl = document.querySelector('.avatar');
         avatarEl.src = avatar;
@@ -56,6 +229,8 @@ supabase.auth.onAuthStateChange(async (event, session) => {
         currentUser = null;
         loginScreen.classList.add('active');
         mainApp.style.display = 'none';
+        document.getElementById('expired-overlay').style.display = 'none';
+        document.getElementById('trial-banner').style.display = 'none';
         clients = []; services = []; receipts = [];
     }
 });
@@ -101,6 +276,8 @@ const loadData = async () => {
         .select('id, usuario_id, nombre, telefono, servicio, monto_mensual, fecha_vencimiento, estado, fecha_creacion')
         .eq('usuario_id', currentUser.id)
         .order('fecha_creacion', { ascending: false });
+
+    console.log('[DEBUG] loadData →', { count: data?.length, error });
 
     if (error) {
         console.error('Error cargando clientes:', error);

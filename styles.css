@@ -731,6 +731,153 @@ body {
     font-size: 16px;
 }
 
+/* Trial banner */
+.trial-banner {
+    background: linear-gradient(90deg, rgba(99,102,241,0.18), rgba(99,102,241,0.04));
+    border: 1px solid rgba(99,102,241,0.35);
+    border-radius: 12px;
+    padding: 12px 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 14px;
+    color: var(--text-primary);
+    margin-bottom: 24px;
+}
+
+.trial-banner.warning {
+    background: linear-gradient(90deg, rgba(245,158,11,0.2), rgba(245,158,11,0.04));
+    border-color: rgba(245,158,11,0.45);
+}
+
+.trial-banner i {
+    color: #818cf8;
+    font-size: 20px;
+    flex-shrink: 0;
+}
+
+.trial-banner.warning i {
+    color: #fcd34d;
+}
+
+.trial-banner-cta {
+    margin-left: auto;
+    color: #a5b4fc;
+    text-decoration: none;
+    font-weight: 600;
+    padding: 6px 14px;
+    border: 1px solid rgba(99,102,241,0.5);
+    border-radius: 8px;
+    font-size: 13px;
+    white-space: nowrap;
+    transition: all 0.15s ease;
+}
+
+.trial-banner.warning .trial-banner-cta {
+    color: #fcd34d;
+    border-color: rgba(245,158,11,0.5);
+}
+
+.trial-banner-cta:hover {
+    background: rgba(99,102,241,0.15);
+}
+
+.trial-banner.warning .trial-banner-cta:hover {
+    background: rgba(245,158,11,0.15);
+}
+
+/* Pantalla bloqueada por suscripción vencida */
+.expired-overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    background: var(--bg-base);
+    background-image:
+        radial-gradient(at 0% 0%, rgba(245, 158, 11, 0.08) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(99, 102, 241, 0.05) 0px, transparent 50%);
+    z-index: 3000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.expired-box {
+    padding: 44px 40px;
+    text-align: center;
+    max-width: 480px;
+    width: 100%;
+}
+
+.expired-icon {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: rgba(245,158,11,0.15);
+    color: #fcd34d;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 40px;
+    margin: 0 auto 20px;
+}
+
+.expired-box h2 {
+    font-size: 24px;
+    margin-bottom: 12px;
+    color: var(--text-primary);
+}
+
+.expired-box > p {
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin-bottom: 20px;
+    font-size: 14px;
+}
+
+.expired-info {
+    background: rgba(16, 185, 129, 0.08);
+    border: 1px solid rgba(16, 185, 129, 0.25);
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 13px;
+    color: #6ee7b7;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 24px;
+    text-align: left;
+    line-height: 1.4;
+}
+
+.expired-info i {
+    font-size: 20px;
+    flex-shrink: 0;
+}
+
+.expired-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.expired-actions .btn-primary,
+.expired-actions .btn-secondary {
+    width: 100%;
+    justify-content: center;
+}
+
+.expired-wp-btn {
+    background: #25D366 !important;
+    border-color: #25D366 !important;
+    color: white !important;
+    text-decoration: none;
+}
+
+.expired-wp-btn:hover {
+    background: #1da851 !important;
+}
+
 /* Botón flotante WhatsApp soporte */
 .wp-support-fab {
     position: fixed;
