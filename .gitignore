@@ -1,4 +1,20 @@
-node_modules/
-dist/
+node_modules
+dist
+dist-ssr
+*.local
+.env.local
+.env.*.local
+
+# TypeScript / Vite build cache
+*.tsbuildinfo
+
+# Editor / OS
 .DS_Store
-*.log
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.vscode/*
+!.vscode/extensions.json
+.idea

@@ -1,0 +1,141 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Dark theme matcheando el branding de CobroGest pero refinado. HSL para shadcn. */
+    --background: 222 33% 8%;          /* #0f172a tipo slate-950 */
+    --foreground: 210 40% 98%;
+
+    --card: 222 24% 15%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222 24% 13%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 239 84% 67%;            /* indigo */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 222 22% 18%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 222 20% 18%;
+    --muted-foreground: 215 16% 65%;   /* contraste 4.5:1+ sobre dark */
+
+    --accent: 222 22% 18%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 70% 55%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 152 60% 45%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+
+    --border: 215 20% 22%;
+    --input: 215 20% 22%;
+    --ring: 239 84% 67%;
+
+    --radius: 0.65rem;
+  }
+
+  * { @apply border-border; }
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-feature-settings: 'cv11', 'ss01';
+    background-image:
+      radial-gradient(at 0% 0%, hsl(239 84% 67% / 0.06) 0px, transparent 50%),
+      radial-gradient(at 100% 100%, hsl(152 60% 45% / 0.04) 0px, transparent 50%);
+    background-attachment: fixed;
+    min-height: 100vh;
+  }
+
+  .font-display {
+    font-family: 'Bricolage Grotesque', 'Inter', system-ui, sans-serif;
+    font-variation-settings: 'opsz' 96;
+    letter-spacing: -0.025em;
+  }
+
+  /* Scroll suave para anchors */
+  html { scroll-behavior: smooth; }
+
+  /* Reduced motion global: corta cualquier animación / transición agresiva */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+/* ---------- KEYFRAMES ---------- */
+@keyframes shimmer {
+  100% { transform: translateX(100%); }
+}
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50%      { transform: translateY(-8px); }
+}
+
+@keyframes glow-pulse {
+  0%, 100% { opacity: 0.5; }
+  50%      { opacity: 1; }
+}
+
+@keyframes bg-pan {
+  0%, 100% { background-position: 0% 50%; }
+  50%      { background-position: 100% 50%; }
+}
+
+/* ---------- UTILITY CLASSES ---------- */
+.anim-fade-up {
+  opacity: 0;
+  animation: fade-in-up 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.anim-fade {
+  opacity: 0;
+  animation: fade-in 0.6s ease-out forwards;
+}
+
+.anim-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.anim-glow {
+  animation: glow-pulse 4s ease-in-out infinite;
+}
+
+.anim-bg-pan {
+  background-size: 200% 200%;
+  animation: bg-pan 18s ease infinite;
+}
+
+/* Pause animation hasta que .is-visible se agregue (via IntersectionObserver) */
+.scroll-anim {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.scroll-anim.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+

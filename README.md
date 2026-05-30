@@ -1,31 +1,108 @@
-# CobroClaro - MVP de control de pagos
+# CobroGest
 
-MVP estático para validar una oferta de control de pagos, cuotas y deudores en negocios chicos que hoy usan papel, Excel o WhatsApp.
+SaaS para que gimnasios y academias dejen de manejar sus cobros en Excel y WhatsApp.
 
-## Qué permite probar
+> **Etapa actual:** Beta. Validando con los primeros 10 clientes pagantes ($20-40k ARS/mes).
 
-- Cargar clientes manualmente.
-- Importar filas desde CSV.
-- Ver cuotas pendientes, vencidas y pagadas.
-- Registrar pagos.
-- Sumar deuda mensual.
-- Generar recordatorio por WhatsApp.
-- Exportar cartera a CSV.
-- Guardar datos en `localStorage` del navegador.
+## Stack
 
-## Oferta comercial que valida
+- **Vite + React 18 + TypeScript** — SPA, code-splitting por route
+- **Tailwind CSS + shadcn-style components** (Radix UI por debajo)
+- **Supabase** — Auth (email + Google OAuth) + Postgres con Row Level Security
+- **react-router-dom v7** — routing público (`/`, `/login`, `/terminos`, `/privacidad`) + protegido (`/dashboard`, `/clientes`, etc.)
+- **sonner** — toasts
+- **lucide-react** — iconos
+- **jsPDF** — generación de recibos (lazy loaded)
+- **Bricolage Grotesque** + **Inter** — tipografía
 
-"Te ordeno tus cobros en 48 horas aunque hoy los tengas en papel, Excel o WhatsApp, y te queda un tablero mensual para saber quién pagó, quién debe y a quién reclamarle."
+## Estructura
 
-## Precio piloto sugerido
+```
+src/
+├── App.tsx              # Routing + auth gates + error boundary
+├── main.tsx
+├── index.css            # Tokens (HSL), keyframes, reduced-motion
+├── lib/
+│   ├── supabase.ts      # Supabase client + env vars
+│   ├── auth.tsx         # AuthProvider con session + suscripción
+│   ├── useClientes.ts   # Hook + auto-promoción de estados vencidos
+│   ├── usePagos.ts      # Pagos del usuario y por cliente
+│   ├── useServicios.ts  # Servicios del usuario
+│   ├── useTemplates.ts  # Plantillas WhatsApp + builder de mensaje
+│   ├── useInView.ts     # IntersectionObserver para scroll anims
+│   ├── csvImport.ts     # Parser + normalización AR
+│   ├── receiptPdf.ts    # Generador PDF lazy import('jspdf')
+│   └── utils.ts         # cn, formatCurrency, formatDate, getInitials
+├── data/
+│   └── mock.ts          # Types compartidos (Cliente, Estado)
+└── components/
+    ├── ui/              # Button, Card, Checkbox, Dialog, Input, Select, Skeleton, Badge
+    ├── LandingPage.tsx  # Hero + features + how + FAQ + CTA + footer
+    ├── LegalPage.tsx    # Terminos + Privacidad
+    ├── LoginScreen.tsx
+    ├── ExpiredScreen.tsx
+    ├── Sidebar.tsx      # Sidebar desktop + BottomNav mobile
+    ├── TrialBanner.tsx
+    ├── ConfirmDialog.tsx # Provider + useConfirm hook
+    ├── ErrorBoundary.tsx
+    ├── DashboardView.tsx
+    ├── ClientesView.tsx  # Tabla + filtros + bulk actions
+    ├── RecibosView.tsx
+    ├── ConfiguracionView.tsx
+    ├── ClientFormDialog.tsx     # Nuevo + Editar
+    ├── PaymentDialog.tsx        # Cobro individual
+    ├── BulkPayDialog.tsx        # Cobro en lote
+    ├── WhatsAppQueueDialog.tsx  # Cola guiada de recordatorios
+    ├── HistoryDialog.tsx        # Historial por cliente con PDF
+    └── CsvImportDialog.tsx      # Preview + validación
+```
 
-- Abono: $29.000 a $59.000 por mes.
-- Setup inicial: $70.000 a $150.000 según cantidad de clientes y desorden de datos.
+## Desarrollo local
 
-## Próximos pasos técnicos
+```bash
+npm install
+npm run dev          # Vite en http://localhost:5173 (o el siguiente libre)
+```
 
-1. Agregar autenticación.
-2. Pasar datos a Supabase.
-3. Crear importador real de Excel.
-4. Integrar links de Mercado Pago.
-5. Automatizar recordatorios por WhatsApp/email.
+### Variables de entorno
+
+Crear `.env.local` (ya está, NO se commitea):
+
+```
+VITE_SUPABASE_URL=https://fcnvjpioswuiyogjjwlp.supabase.co
+VITE_SUPABASE_ANON_KEY=...
+VITE_SUPPORT_WHATSAPP=5492494374128
+```
+
+## Scripts
+
+```bash
+npm run dev          # Dev server con HMR
+npm run build        # Type-check + build de producción a /dist
+npm run preview      # Servir el build de prod localmente
+```
+
+## Deploy
+
+Netlify, conectado al repo. El `netlify.toml` ya configura:
+- `npm run build` como build command
+- `dist/` como publish dir
+- Fallback SPA a `/index.html` para rutas client-side
+- Cache largo para assets con hash
+
+## Supabase
+
+Tablas (todas con RLS habilitado, policy `auth.uid() = usuario_id`):
+- `clientes` — los alumnos del gimnasio
+- `pagos` — historial de cobros (FK a clientes con ON DELETE CASCADE)
+- `servicios` — los planes que ofrece cada usuario
+- `configuraciones` — plantillas WhatsApp por usuario (PK es `usuario_id`)
+- `suscripciones` — trial/pago/cancelado + `vence_el`
+
+Trigger `crear_trial_para_nuevo_usuario` (AFTER INSERT en `auth.users`):
+- Crea suscripción trial 30 días
+- Crea 3 servicios default: Cuota mensual, Clase suelta, Pase libre
+
+## Contacto
+
+WhatsApp soporte: +54 9 249 437-4128

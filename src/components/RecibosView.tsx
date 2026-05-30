@@ -1,0 +1,136 @@
+import { useMemo, useState } from 'react'
+import { Download, Receipt, Search } from 'lucide-react'
+import { usePagos } from '@/lib/usePagos'
+import { generateReceiptPDF } from '@/lib/receiptPdf'
+import { formatCurrency, getInitials } from '@/lib/utils'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
+
+export function RecibosView() {
+  const { pagos, loading, error, refresh } = usePagos()
+  const [search, setSearch] = useState('')
+
+  const filtered = useMemo(() => {
+    if (!search) return pagos
+    const q = search.toLowerCase()
+    return pagos.filter(p => (p.cliente_nombre ?? '').toLowerCase().includes(q))
+  }, [pagos, search])
+
+  const totalCobrado = filtered.reduce((s, p) => s + p.monto_pagado, 0)
+
+  const downloadPdf = (p: typeof pagos[number]) => {
+    generateReceiptPDF({
+      clientName: p.cliente_nombre ?? 'Cliente eliminado',
+      service: p.cliente_servicio ?? '-',
+      amount: p.monto_pagado,
+      method: p.metodo_pago || 'Efectivo',
+      paymentDate: new Date(p.fecha_pago),
+      receiptId: p.id,
+    })
+  }
+
+  return (
+    <div className="flex flex-col gap-8">
+      <div className="flex items-end justify-between flex-wrap gap-4">
+        <div>
+          <h1 className="text-3xl font-semibold tracking-tight">Recibos</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Historial completo de cobros · {pagos.length} pago{pagos.length === 1 ? '' : 's'} registrado{pagos.length === 1 ? '' : 's'}
+          </p>
+        </div>
+        {filtered.length > 0 && (
+          <div className="rounded-lg border border-border bg-card px-4 py-2.5">
+            <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Total cobrado</div>
+            <div className="text-lg font-semibold text-success tabular-nums">{formatCurrency(totalCobrado)}</div>
+          </div>
+        )}
+      </div>
+
+      {error && (
+        <div role="alert" className="rounded-lg border border-destructive/30 bg-destructive/10 text-destructive text-sm px-4 py-3 flex items-center justify-between gap-3">
+          <span>Error: {error}</span>
+          <Button variant="outline" size="sm" onClick={refresh}>Reintentar</Button>
+        </div>
+      )}
+
+      <div className="relative max-w-md">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input className="pl-9" placeholder="Buscar cliente..." value={search} onChange={e => setSearch(e.target.value)} />
+      </div>
+
+      <div className="rounded-xl border border-border overflow-hidden">
+        <div className="grid grid-cols-[1.2fr_minmax(180px,1.5fr)_1fr_1fr_1fr_auto] gap-x-4 px-4 py-3 border-b border-border bg-muted/40 text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
+          <div>Fecha y hora</div>
+          <div>Cliente</div>
+          <div>Servicio</div>
+          <div>Método</div>
+          <div>Monto</div>
+          <div className="text-right pr-1">Recibo</div>
+        </div>
+
+        {loading ? (
+          <div className="divide-y divide-border/60">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="grid grid-cols-[1.2fr_minmax(180px,1.5fr)_1fr_1fr_1fr_auto] gap-x-4 items-center px-4 py-3">
+                <div className="flex flex-col gap-1.5">
+                  <Skeleton className="h-3.5 w-24" />
+                  <Skeleton className="h-3 w-16" />
+                </div>
+                <div className="flex items-center gap-2.5">
+                  <Skeleton className="h-8 w-8 rounded-full" />
+                  <Skeleton className="h-4 w-28" />
+                </div>
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-8 w-16 rounded-md" />
+              </div>
+            ))}
+          </div>
+        ) : pagos.length === 0 ? (
+          <div className="px-6 py-16 grid place-items-center gap-3 text-center">
+            <div className="grid place-items-center h-14 w-14 rounded-full bg-primary/15 text-primary">
+              <Receipt className="h-6 w-6" />
+            </div>
+            <h2 className="text-base font-semibold">Todavía no registraste pagos</h2>
+            <p className="text-sm text-muted-foreground max-w-sm">
+              Cuando cobres a un cliente, el recibo va a aparecer acá. Vas a poder descargarlo en PDF o reenviarlo por WhatsApp cuando quieras.
+            </p>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="px-6 py-12 text-center text-sm text-muted-foreground">
+            No se encontraron pagos para tu búsqueda.
+          </div>
+        ) : (
+          filtered.map(p => {
+            const date = new Date(p.fecha_pago)
+            return (
+              <div
+                key={p.id}
+                className="grid grid-cols-[1.2fr_minmax(180px,1.5fr)_1fr_1fr_1fr_auto] gap-x-4 items-center px-4 py-3 border-b border-border/60 last:border-b-0 hover:bg-accent/30 transition-colors"
+              >
+                <div className="text-sm">
+                  <div className="font-medium">{date.toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
+                  <div className="text-xs text-muted-foreground">{date.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })} hs</div>
+                </div>
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="grid place-items-center h-8 w-8 rounded-full bg-primary/15 text-primary text-xs font-semibold shrink-0">
+                    {getInitials(p.cliente_nombre ?? '?')}
+                  </div>
+                  <span className="text-sm font-medium truncate">{p.cliente_nombre ?? 'Cliente eliminado'}</span>
+                </div>
+                <div className="text-sm text-foreground/80 truncate">{p.cliente_servicio ?? '-'}</div>
+                <div className="text-sm text-muted-foreground">{p.metodo_pago || '-'}</div>
+                <div className="text-sm font-semibold text-success tabular-nums">+ {formatCurrency(p.monto_pagado)}</div>
+                <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => downloadPdf(p)}>
+                  <Download className="h-3.5 w-3.5" /> PDF
+                </Button>
+              </div>
+            )
+          })
+        )}
+      </div>
+    </div>
+  )
+}
