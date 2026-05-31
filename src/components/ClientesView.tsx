@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Search, Upload, FileText, Download, HandCoins, MessageCircle, Clock, Pencil, Trash2, CheckCircle2, Plus, Users } from 'lucide-react'
+import { Search, Upload, FileText, Download, HandCoins, MessageCircle, Clock, Pencil, Trash2, CheckCircle2, Plus, Users, MoreHorizontal } from 'lucide-react'
 import { Cliente, Estado, groupLabel, statusOrder } from '@/data/mock'
 import { useClientes } from '@/lib/useClientes'
 import { buildWhatsapp, useTemplates } from '@/lib/useTemplates'
@@ -13,13 +13,14 @@ import { WhatsAppQueueDialog } from '@/components/WhatsAppQueueDialog'
 import { HistoryDialog } from '@/components/HistoryDialog'
 import { CsvImportDialog } from '@/components/CsvImportDialog'
 import { generateTemplateCsv } from '@/lib/csvImport'
-import { estadoLabel } from '@/data/mock'
+import { downloadFullBackup } from '@/lib/exportBackup'
 import { cn, formatCurrency, formatDate, daysUntil, getInitials } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from 'sonner'
 
@@ -141,21 +142,12 @@ export function ClientesView() {
     toast.success('Plantilla descargada — abrila en Excel para ver el formato')
   }
 
-  const exportCsv = () => {
+  const exportCsv = async () => {
+    if (!user) return
     if (clientes.length === 0) { toast.info('No hay clientes para exportar'); return }
-    const headers = ['Nombre', 'Teléfono', 'Servicio', 'Monto', 'Vencimiento', 'Estado']
-    const rows = clientes.map(c => [
-      c.nombre, c.telefono, c.servicio, c.monto, c.fecha_vencimiento, estadoLabel(c.estado),
-    ])
-    const csv = [headers, ...rows]
-      .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
-      .join('\n')
-    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url; a.download = `clientes_cobrogest_${new Date().toISOString().split('T')[0]}.csv`; a.click()
-    URL.revokeObjectURL(url)
-    toast.success(`${clientes.length} clientes exportados`)
+    const result = await downloadFullBackup({ userId: user.id })
+    if (!result.ok) toast.error('No se pudo exportar: ' + result.error)
+    else toast.success(`Exportado: ${result.clientesCount} clientes, ${result.pagosCount} pagos`)
   }
 
   return (
@@ -267,7 +259,7 @@ export function ClientesView() {
             <p className="text-sm text-muted-foreground max-w-[360px] leading-relaxed">
               Acá vas a ver el estado de cada alumno: quién pagó, quién debe y a quién reclamarle.
             </p>
-            <Button disabled title="Próximo: Fase 2" className="mt-2">
+            <Button onClick={openNuevo} className="mt-2">
               <Plus className="h-4 w-4" /> Agregar cliente
             </Button>
           </div>
@@ -373,6 +365,7 @@ function ClientRow({
       <div>{estadoBadge(c.estado)}</div>
 
       <div className="flex items-center justify-end gap-1">
+        {/* Acción primaria: Cobrar (o badge Cobrado) */}
         {c.estado !== 'al_dia' ? (
           <Button variant="success" size="sm" className="h-8 px-2.5 text-xs" onClick={onPay}>
             <HandCoins className="h-3.5 w-3.5" /> Cobrar
@@ -382,6 +375,8 @@ function ClientRow({
             <CheckCircle2 className="h-4 w-4" /> Cobrado
           </div>
         )}
+
+        {/* WhatsApp queda visible (es la acción más frecuente) */}
         {c.telefono && (
           <Button
             variant="ghost" size="icon" onClick={onWhatsapp}
@@ -391,19 +386,27 @@ function ClientRow({
             <MessageCircle className="h-4 w-4" />
           </Button>
         )}
-        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onHistory} aria-label={`Ver historial de ${c.nombre}`}>
-          <Clock className="h-4 w-4" />
-        </Button>
-        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onEdit} aria-label={`Editar a ${c.nombre}`}>
-          <Pencil className="h-4 w-4" />
-        </Button>
-        <Button
-          variant="ghost" size="icon" onClick={onDelete}
-          className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-          aria-label={`Eliminar a ${c.nombre}`}
-        >
-          <Trash2 className="h-4 w-4" />
-        </Button>
+
+        {/* Menú con el resto: Historial / Editar / Eliminar */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8" aria-label={`Más acciones para ${c.nombre}`}>
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuItem onClick={onHistory}>
+              <Clock /> Ver historial de pagos
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={onEdit}>
+              <Pencil /> Editar datos
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem destructive onClick={onDelete}>
+              <Trash2 /> Eliminar cliente
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </div>
   )

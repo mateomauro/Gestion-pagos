@@ -10,6 +10,7 @@ import { LoginScreen } from '@/components/LoginScreen'
 import { ExpiredScreen } from '@/components/ExpiredScreen'
 import { LandingPage } from '@/components/LandingPage'
 import { TerminosPage, PrivacidadPage } from '@/components/LegalPage'
+import { ResetPasswordScreen } from '@/components/ResetPasswordScreen'
 import { ConfirmProvider } from '@/components/ConfirmDialog'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 
@@ -114,6 +115,7 @@ export function App() {
               <Route path="/login" element={<LoginGuard />} />
               <Route path="/terminos" element={<TerminosPage />} />
               <Route path="/privacidad" element={<PrivacidadPage />} />
+              <Route path="/reset" element={<ResetPasswordScreen />} />
 
               {/* Protegidas (requieren auth + suscripción activa) */}
               <Route path="/dashboard"     element={<AuthGuard><DashboardView /></AuthGuard>} />
