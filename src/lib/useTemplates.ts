@@ -41,6 +41,19 @@ export function useTemplates() {
   return { templates, loading }
 }
 
+// Renderiza una plantilla con datos arbitrarios (usado por preview en Configuración)
+export const renderTemplate = (
+  template: string,
+  data: { nombre: string; servicio: string; monto: number; vencimiento: string }
+): string => {
+  const montoFmt = new Intl.NumberFormat('es-AR', { maximumFractionDigits: 0 }).format(data.monto)
+  return template
+    .replace(/{nombre}/g, data.nombre)
+    .replace(/{servicio}/g, data.servicio)
+    .replace(/{monto}/g, montoFmt)
+    .replace(/{vencimiento}/g, formatDate(data.vencimiento))
+}
+
 // Helper para construir el mensaje + URL de WhatsApp
 export const buildWhatsapp = (client: Cliente, templates: Templates): { text: string; url: string } => {
   let text = client.estado === 'vencido' ? templates.overdue : templates.pending

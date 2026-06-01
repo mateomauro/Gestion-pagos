@@ -66,7 +66,7 @@ export function ClientFormDialog({ open, onOpenChange, editing, onSaved }: Props
   const [monto, setMonto] = useState('')
 
   // Estado de pago — UX simplificada
-  // yaPago === true  -> estado = 'al_dia'. Fecha: hoy + 1 mes (auto) o custom si tocó "Cambiar fecha"
+  // yaPago === true  -> estado = 'al_dia'. Fecha: hoy + 1 mes (auto) o custom si tocó "Cambiar"
   // yaPago === false -> mostrar datepicker; estado = pendiente|vencido según fecha
   const [yaPago, setYaPago] = useState(false)
   const [fecha, setFecha] = useState(today())
@@ -100,7 +100,7 @@ export function ClientFormDialog({ open, onOpenChange, editing, onSaved }: Props
   }, [open, editing])
 
   // Cuando el usuario marca "ya pagó", el vencimiento es hoy + 1 mes por default
-  // (asume "pagó hoy"), pero puede editarlo con "Cambiar fecha" si arrancó antes.
+  // (asume "pagó hoy"), pero puede editarlo con "Cambiar" si arrancó antes.
   const fechaAuto = useMemo(() => addOneMonth(today()), [])
   const fechaFinal = yaPago ? (customNextDue ? nextDueDate : fechaAuto) : fecha
 
@@ -240,7 +240,7 @@ export function ClientFormDialog({ open, onOpenChange, editing, onSaved }: Props
                           onClick={() => setCustomNextDue(true)}
                           className="text-primary hover:underline font-medium inline-flex items-center gap-1"
                         >
-                          <Pencil className="h-3 w-3" /> Cambiar fecha
+                          <Pencil className="h-3 w-3" /> Cambiar
                         </button>
                       </div>
                     )}
@@ -286,7 +286,7 @@ export function ClientFormDialog({ open, onOpenChange, editing, onSaved }: Props
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
             <Button type="submit" disabled={busy}>
               {busy && <LoaderCircle className="h-4 w-4 animate-spin" />}
-              {editing ? 'Guardar cambios' : 'Crear cliente'}
+              {editing ? 'Guardar' : 'Crear'}
             </Button>
           </DialogFooter>
         </form>

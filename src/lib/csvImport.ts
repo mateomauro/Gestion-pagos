@@ -78,9 +78,14 @@ export const normalizeEstado = (raw: any): Estado => {
 
 export function parseCsv(text: string): ParseResult | { error: string } {
   const lines = text.split(/\r?\n/).filter(l => l.trim())
-  if (lines.length < 2) return { error: 'El archivo CSV está vacío o solo tiene encabezados' }
+  if (lines.length < 2) return { error: 'La lista está vacía o solo tiene encabezados. Asegurate de incluir tus clientes debajo de los títulos.' }
 
-  const separator = lines[0].includes(';') ? ';' : ','
+  // Auto-detectar separador: tab (Excel/Sheets paste), ; (CSV europeo) o , (CSV)
+  const firstLine = lines[0]
+  let separator = ','
+  if (firstLine.includes('\t')) separator = '\t'
+  else if (firstLine.includes(';')) separator = ';'
+
   const headers = lines[0].split(separator).map(h => h.trim().toLowerCase().replace(/"/g, ''))
 
   const findCol = (opts: string[]) => headers.findIndex(h => opts.some(o => h.includes(o)))
@@ -143,22 +148,68 @@ export function parseCsv(text: string): ParseResult | { error: string } {
   return { headers, mapping, rows }
 }
 
-// Genera el CSV de plantilla con datos de ejemplo
+// Datos de la plantilla (compartidos por CSV y XLSX)
+const futureDate = (days: number) => {
+  const d = new Date(); d.setDate(d.getDate() + days)
+  return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear()
+}
+
+const TEMPLATE_HEADERS = ['Nombre', 'Telefono', 'Servicio', 'Monto', 'Vencimiento', 'Estado']
+
+const templateRows = (): (string | number)[][] => [
+  ['Juan Pérez',     '5491123456789', 'Cuota mensual',        15000, futureDate(10),  'Pendiente'],
+  ['María González', '5491198765432', 'Pase libre deportivo', 25000, futureDate(-5),  'Vencido'],
+  ['Carlos Ramírez', '5491155667788', 'Clase suelta',         5000,  futureDate(20),  'Al día'],
+]
+
+// Genera el CSV de plantilla con datos de ejemplo (fallback legacy)
 export const generateTemplateCsv = (): string => {
-  const today = new Date()
-  const futureDate = (days: number) => {
-    const d = new Date(); d.setDate(d.getDate() + days)
-    return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear()
-  }
-  void today
-  const headers = ['Nombre', 'Telefono', 'Servicio', 'Monto', 'Vencimiento', 'Estado']
-  const samples = [
-    ['Juan Pérez',     '5491123456789', 'Cuota mensual',        '15000', futureDate(10),  'Pendiente'],
-    ['María González', '5491198765432', 'Pase libre deportivo', '25000', futureDate(-5),  'Vencido'],
-    ['Carlos Ramírez', '5491155667788', 'Clase suelta',         '5000',  futureDate(20),  'Al día'],
-  ]
-  const csv = [headers, ...samples]
+  const csv = [TEMPLATE_HEADERS, ...templateRows()]
     .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
     .join('\n')
   return '﻿' + csv // BOM para que Excel detecte UTF-8
+}
+
+/**
+ * Genera la plantilla como archivo .xlsx real (Excel nativo).
+ * Excel/LibreOffice/Sheets la abren directo sin wizard de import.
+ * jsPDF y xlsx se importan dinamicamente para no inflar el bundle inicial.
+ */
+export const generateTemplateXlsx = async (): Promise<Blob> => {
+  const XLSX = await import('xlsx')
+  const ws = XLSX.utils.aoa_to_sheet([TEMPLATE_HEADERS, ...templateRows()])
+
+  // Anchos de columna razonables
+  ws['!cols'] = [
+    { wch: 22 }, // Nombre
+    { wch: 18 }, // Telefono
+    { wch: 24 }, // Servicio
+    { wch: 12 }, // Monto
+    { wch: 14 }, // Vencimiento
+    { wch: 12 }, // Estado
+  ]
+
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, ws, 'Clientes')
+
+  const arrayBuf = XLSX.write(wb, { bookType: 'xlsx', type: 'array' }) as ArrayBuffer
+  return new Blob([arrayBuf], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  })
+}
+
+/**
+ * Parsea un archivo .xlsx subido y devuelve su contenido como TSV
+ * (tab-separated) para que el parseCsv() existente lo procese.
+ * Si tiene varias hojas, usa la primera.
+ */
+export const parseXlsxFile = async (file: File): Promise<string> => {
+  const XLSX = await import('xlsx')
+  const buf = await file.arrayBuffer()
+  const wb = XLSX.read(buf, { type: 'array', cellDates: false, raw: false })
+  const firstSheetName = wb.SheetNames[0]
+  if (!firstSheetName) throw new Error('El archivo Excel está vacío')
+  const ws = wb.Sheets[firstSheetName]
+  // sheet_to_csv con tab para que matchee nuestro parseCsv
+  return XLSX.utils.sheet_to_csv(ws, { FS: '\t', blankrows: false })
 }

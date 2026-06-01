@@ -1,10 +1,12 @@
 import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Sigma, TrendingUp, Clock, AlertCircle, Plus, Users } from 'lucide-react'
+import { Sigma, TrendingUp, Clock, AlertCircle } from 'lucide-react'
 import { useClientes } from '@/lib/useClientes'
 import { formatCurrency } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { OnboardingChecklist } from '@/components/OnboardingChecklist'
+import { ProximosVencimientos } from '@/components/ProximosVencimientos'
+import { ComparativoMes } from '@/components/ComparativoMes'
 
 export function DashboardView() {
   const { clientes, loading } = useClientes()
@@ -47,29 +49,18 @@ export function DashboardView() {
     )
   }
 
-  // Empty state cuando aún no hay clientes
+  // Empty state cuando aún no hay clientes: solo onboarding card
   if (!loading && clientes.length === 0) {
     return (
       <div className="flex flex-col gap-8">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight">Dashboard</h1>
+          <h1 className="text-3xl font-semibold tracking-tight">¡Bienvenido a CobroGest!</h1>
           <p className="text-sm text-muted-foreground mt-1">
             <span className="font-display italic text-base text-foreground/80 capitalize">{monthName}</span> de {new Date().getFullYear()}
           </p>
         </div>
 
-        <div className="rounded-xl border border-border grid place-items-center gap-3 py-20 px-6 text-center">
-          <div className="grid place-items-center h-16 w-16 rounded-full bg-primary/15 text-primary">
-            <Users className="h-7 w-7" />
-          </div>
-          <h2 className="text-lg font-semibold">¡Bienvenido a CobroGest!</h2>
-          <p className="text-sm text-muted-foreground max-w-md leading-relaxed">
-            Todavía no cargaste ningún cliente. Empezá por agregar tu primer alumno para ver tus métricas.
-          </p>
-          <Button className="mt-2" onClick={() => navigate('/clientes')}>
-            <Plus className="h-4 w-4" /> Cargar mi primer cliente
-          </Button>
-        </div>
+        <OnboardingChecklist />
       </div>
     )
   }
@@ -82,6 +73,9 @@ export function DashboardView() {
           <span className="font-display italic text-base text-foreground/80 capitalize">{monthName}</span> de {new Date().getFullYear()} · {clientes.length} alumno{clientes.length === 1 ? '' : 's'}
         </p>
       </div>
+
+      {/* Onboarding: aparece solo si quedan pasos pendientes, se oculta sola cuando esta todo */}
+      <OnboardingChecklist />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <KpiCard
@@ -118,6 +112,17 @@ export function DashboardView() {
           tone="destructive"
           onClick={() => navigate('/clientes?filter=vencido')}
         />
+      </div>
+
+      {/* Próximos vencimientos (col 2/3) + Comparativo mes (col 1/3) en desktop.
+          En mobile: vencimientos primero (es accionable), comparativo después. */}
+      <div className="grid gap-4 lg:grid-cols-3">
+        <div className="lg:col-span-2 order-1">
+          <ProximosVencimientos />
+        </div>
+        <div className="lg:col-span-1 order-2">
+          <ComparativoMes />
+        </div>
       </div>
     </div>
   )

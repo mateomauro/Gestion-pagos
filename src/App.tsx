@@ -39,12 +39,14 @@ function RouteFallback() {
 function SupportFab() {
   return (
     <a
-      href={`https://wa.me/${SUPPORT_WHATSAPP}`}
+      href={`https://wa.me/${SUPPORT_WHATSAPP}?text=${encodeURIComponent('Hola! Estoy usando CobroGest y tengo una consulta:')}`}
       target="_blank" rel="noopener noreferrer"
-      className="fixed right-6 bottom-24 md:bottom-6 z-40 grid place-items-center h-14 w-14 rounded-full bg-[#25D366] text-white shadow-xl hover:scale-105 active:scale-95 transition-transform"
-      aria-label="Hablar con soporte por WhatsApp"
+      className="fixed right-4 md:right-6 bottom-24 md:bottom-6 z-40 inline-flex items-center gap-2 h-12 pl-3 pr-4 rounded-full bg-[#25D366] text-white font-medium text-sm shadow-xl hover:scale-105 active:scale-95 transition-transform"
+      aria-label="Pedir ayuda por WhatsApp"
+      title="Hablar con soporte por WhatsApp"
     >
-      <MessageCircle className="h-6 w-6" />
+      <MessageCircle className="h-5 w-5" />
+      <span>Ayuda</span>
     </a>
   )
 }

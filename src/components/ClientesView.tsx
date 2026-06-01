@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react'
-import { Search, Upload, FileText, Download, HandCoins, MessageCircle, Clock, Pencil, Trash2, CheckCircle2, Plus, Users, MoreHorizontal } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
+import { Search, Upload, Download, HandCoins, MessageCircle, Clock, Pencil, Trash2, CheckCircle2, Plus, Users, MoreHorizontal } from 'lucide-react'
 import { Cliente, Estado, groupLabel, statusOrder } from '@/data/mock'
 import { useClientes } from '@/lib/useClientes'
 import { buildWhatsapp, useTemplates } from '@/lib/useTemplates'
@@ -12,7 +13,6 @@ import { BulkPayDialog } from '@/components/BulkPayDialog'
 import { WhatsAppQueueDialog } from '@/components/WhatsAppQueueDialog'
 import { HistoryDialog } from '@/components/HistoryDialog'
 import { CsvImportDialog } from '@/components/CsvImportDialog'
-import { generateTemplateCsv } from '@/lib/csvImport'
 import { downloadFullBackup } from '@/lib/exportBackup'
 import { cn, formatCurrency, formatDate, daysUntil, getInitials } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -93,6 +93,18 @@ export function ClientesView() {
   const totalSelected = selectedConDeuda.reduce((s, c) => s + c.monto, 0)
 
   const openNuevo = () => { setEditing(null); setFormOpen(true) }
+
+  // Soporte para deep-link "/clientes?new=1" desde el onboarding -> abre el form
+  const [searchParams, setSearchParams] = useSearchParams()
+  useEffect(() => {
+    if (searchParams.get('new') === '1') {
+      openNuevo()
+      // limpio el query param para que no re-abra el form al navegar back
+      searchParams.delete('new')
+      setSearchParams(searchParams, { replace: true })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   const openEditar = (c: Cliente) => { setEditing(c); setFormOpen(true) }
   const openCobro = (c: Cliente) => setPaymentClient(c)
   const closeCobro = (open: boolean) => { if (!open) setPaymentClient(null) }
@@ -130,16 +142,6 @@ export function ClientesView() {
   const afterBulkAction = () => {
     setSelected(new Set())
     refresh()
-  }
-
-  const downloadTemplate = () => {
-    const csv = generateTemplateCsv()
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url; a.download = 'plantilla_cobrogest.csv'; a.click()
-    URL.revokeObjectURL(url)
-    toast.success('Plantilla descargada — abrila en Excel para ver el formato')
   }
 
   const exportCsv = async () => {
@@ -190,9 +192,12 @@ export function ClientesView() {
           </SelectContent>
         </Select>
         <div className="ml-auto flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => setCsvOpen(true)}><Upload className="h-4 w-4" /> Importar</Button>
-          <Button variant="outline" size="sm" onClick={downloadTemplate}><FileText className="h-4 w-4" /> Plantilla</Button>
-          <Button variant="outline" size="sm" onClick={exportCsv}><Download className="h-4 w-4" /> Exportar</Button>
+          <Button variant="outline" size="sm" onClick={() => setCsvOpen(true)}>
+            <Upload className="h-4 w-4" /> Importar
+          </Button>
+          <Button variant="outline" size="sm" onClick={exportCsv}>
+            <Download className="h-4 w-4" /> Exportar
+          </Button>
         </div>
       </div>
 

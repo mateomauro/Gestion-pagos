@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { Download, Receipt, Search, Send } from 'lucide-react'
 import { toast } from 'sonner'
 import { usePagos } from '@/lib/usePagos'
+import { useReceiptBusiness } from '@/lib/useNegocio'
 import { generateReceiptPDF } from '@/lib/receiptPdf'
 import { shareReceiptViaWhatsApp } from '@/lib/shareReceipt'
 import { formatCurrency, getInitials } from '@/lib/utils'
@@ -11,6 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 
 export function RecibosView() {
   const { pagos, loading, error, refresh } = usePagos()
+  const { business } = useReceiptBusiness()
   const [search, setSearch] = useState('')
 
   const filtered = useMemo(() => {
@@ -28,6 +30,7 @@ export function RecibosView() {
     method: p.metodo_pago || 'Efectivo',
     paymentDate: new Date(p.fecha_pago),
     receiptId: p.id,
+    business,
   })
 
   const downloadPdf = (p: typeof pagos[number]) => {

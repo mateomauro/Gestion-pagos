@@ -3,6 +3,7 @@ import { toast } from 'sonner'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { usePagosByClient } from '@/lib/usePagos'
+import { useReceiptBusiness } from '@/lib/useNegocio'
 import { generateReceiptPDF } from '@/lib/receiptPdf'
 import { shareReceiptViaWhatsApp } from '@/lib/shareReceipt'
 import { formatCurrency } from '@/lib/utils'
@@ -15,6 +16,7 @@ interface Props {
 
 export function HistoryDialog({ client, onOpenChange }: Props) {
   const { pagos, loading } = usePagosByClient(client?.id ?? null)
+  const { business } = useReceiptBusiness()
   const open = client !== null
 
   const totalPagado = pagos.reduce((s, p) => s + p.monto_pagado, 0)
@@ -29,6 +31,7 @@ export function HistoryDialog({ client, onOpenChange }: Props) {
       method: metodo || 'Efectivo',
       paymentDate: new Date(fechaIso),
       receiptId: pagoId,
+      business,
     }
   }
 
