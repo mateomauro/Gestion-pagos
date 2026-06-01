@@ -1,8 +1,10 @@
-import { Download, LoaderCircle, Receipt } from 'lucide-react'
+import { Download, LoaderCircle, Receipt, Send } from 'lucide-react'
+import { toast } from 'sonner'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { usePagosByClient } from '@/lib/usePagos'
 import { generateReceiptPDF } from '@/lib/receiptPdf'
+import { shareReceiptViaWhatsApp } from '@/lib/shareReceipt'
 import { formatCurrency } from '@/lib/utils'
 import type { Cliente } from '@/data/mock'
 
@@ -18,16 +20,33 @@ export function HistoryDialog({ client, onOpenChange }: Props) {
   const totalPagado = pagos.reduce((s, p) => s + p.monto_pagado, 0)
   const lastPago = pagos[0]
 
-  const downloadPdf = (pagoId: string, monto: number, metodo: string | null, fechaIso: string) => {
-    if (!client) return
-    generateReceiptPDF({
+  const buildInput = (pagoId: string, monto: number, metodo: string | null, fechaIso: string) => {
+    if (!client) return null
+    return {
       clientName: client.nombre,
       service: client.servicio,
       amount: monto,
       method: metodo || 'Efectivo',
       paymentDate: new Date(fechaIso),
       receiptId: pagoId,
-    })
+    }
+  }
+
+  const downloadPdf = (pagoId: string, monto: number, metodo: string | null, fechaIso: string) => {
+    const input = buildInput(pagoId, monto, metodo, fechaIso)
+    if (input) generateReceiptPDF(input)
+  }
+
+  const sharePdf = async (pagoId: string, monto: number, metodo: string | null, fechaIso: string) => {
+    const input = buildInput(pagoId, monto, metodo, fechaIso)
+    if (!input || !client) return
+    const t = toast.loading('Generando recibo…')
+    const result = await shareReceiptViaWhatsApp({ receipt: input, phone: client.telefono || undefined })
+    toast.dismiss(t)
+    if (result === 'native') toast.success('Recibo compartido')
+    else if (result === 'whatsapp-fallback') toast.success('PDF descargado · adjuntalo en WhatsApp Web')
+    else if (result === 'download-only') toast.info('PDF descargado (cargá un teléfono para abrir WhatsApp)')
+    else if (result === 'error') toast.error('No se pudo generar el recibo')
   }
 
   return (
@@ -70,7 +89,7 @@ export function HistoryDialog({ client, onOpenChange }: Props) {
           </div>
         ) : (
           <div className="max-h-[320px] overflow-y-auto rounded-lg border border-border">
-            <div className="grid grid-cols-[1fr_1fr_1fr_auto] gap-3 px-4 py-2.5 border-b border-border bg-muted/40 text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
+            <div className="grid grid-cols-[1fr_1fr_1fr_minmax(170px,auto)] gap-3 px-4 py-2.5 border-b border-border bg-muted/40 text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
               <div>Fecha</div>
               <div>Monto</div>
               <div>Método</div>
@@ -79,19 +98,29 @@ export function HistoryDialog({ client, onOpenChange }: Props) {
             {pagos.map(p => {
               const date = new Date(p.fecha_pago)
               return (
-                <div key={p.id} className="grid grid-cols-[1fr_1fr_1fr_auto] gap-3 items-center px-4 py-3 border-b border-border/60 last:border-b-0 hover:bg-accent/30 transition-colors">
+                <div key={p.id} className="grid grid-cols-[1fr_1fr_1fr_minmax(170px,auto)] gap-3 items-center px-4 py-3 border-b border-border/60 last:border-b-0 hover:bg-accent/30 transition-colors">
                   <div className="text-sm">
                     <div className="font-medium">{date.toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
                     <div className="text-xs text-muted-foreground">{date.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })} hs</div>
                   </div>
                   <div className="text-sm font-semibold text-success tabular-nums">{formatCurrency(p.monto_pagado)}</div>
                   <div className="text-sm text-foreground/80">{p.metodo_pago || '-'}</div>
-                  <Button
-                    variant="outline" size="sm" className="h-8 text-xs"
-                    onClick={() => downloadPdf(p.id, p.monto_pagado, p.metodo_pago, p.fecha_pago)}
-                  >
-                    <Download className="h-3.5 w-3.5" /> PDF
-                  </Button>
+                  <div className="flex items-center justify-end gap-1.5">
+                    <Button
+                      variant="outline" size="sm" className="h-8 text-xs"
+                      onClick={() => sharePdf(p.id, p.monto_pagado, p.metodo_pago, p.fecha_pago)}
+                      title={client?.telefono ? 'Enviar por WhatsApp' : 'Enviar (sin teléfono)'}
+                    >
+                      <Send className="h-3.5 w-3.5" /> Enviar
+                    </Button>
+                    <Button
+                      variant="outline" size="sm" className="h-8 text-xs"
+                      onClick={() => downloadPdf(p.id, p.monto_pagado, p.metodo_pago, p.fecha_pago)}
+                      title="Descargar PDF"
+                    >
+                      <Download className="h-3.5 w-3.5" /> PDF
+                    </Button>
+                  </div>
                 </div>
               )
             })}

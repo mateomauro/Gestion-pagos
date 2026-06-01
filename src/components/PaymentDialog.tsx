@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useAuth } from '@/lib/auth'
 import { supabase } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
+import { shareReceiptViaWhatsApp } from '@/lib/shareReceipt'
 import type { Cliente } from '@/data/mock'
 import { toast } from 'sonner'
 
@@ -33,13 +34,13 @@ export function PaymentDialog({ client, onOpenChange, onPaid }: Props) {
     if (!user || !client) return
     setBusy(true)
 
-    // 1. Insertar el pago primero (dato crítico)
-    const { error: errPago } = await supabase.from('pagos').insert([{
+    // 1. Insertar el pago primero (dato crítico) y devolver id + fecha_pago
+    const { data: pagoData, error: errPago } = await supabase.from('pagos').insert([{
       cliente_id: client.id,
       usuario_id: user.id,
       monto_pagado: client.monto,
       metodo_pago: metodo,
-    }])
+    }]).select('id, fecha_pago').single()
     if (errPago) {
       setBusy(false)
       toast.error('No se pudo registrar el pago: ' + errPago.message)
@@ -58,7 +59,36 @@ export function PaymentDialog({ client, onOpenChange, onPaid }: Props) {
     if (errCli) {
       toast.error('Pago guardado, pero el estado del cliente no se actualizó. Refrescá la página.')
     } else {
-      toast.success(`Pago de ${client.nombre} registrado`)
+      // Toast con acción "Enviar recibo" -> abre Web Share API o WhatsApp Web
+      const clienteSnap = client
+      const pagoId = pagoData?.id as string | undefined
+      const fechaPago = pagoData?.fecha_pago ? new Date(pagoData.fecha_pago as string) : new Date()
+      toast.success(`Pago de ${clienteSnap.nombre} registrado`, {
+        duration: 8000,
+        action: {
+          label: 'Enviar recibo',
+          onClick: async () => {
+            const t = toast.loading('Generando recibo…')
+            const result = await shareReceiptViaWhatsApp({
+              receipt: {
+                clientName: clienteSnap.nombre,
+                service: clienteSnap.servicio,
+                amount: clienteSnap.monto,
+                method: metodo,
+                paymentDate: fechaPago,
+                nextDueDate: nuevoVenc,
+                receiptId: pagoId,
+              },
+              phone: clienteSnap.telefono || undefined,
+            })
+            toast.dismiss(t)
+            if (result === 'native') toast.success('Recibo compartido')
+            else if (result === 'whatsapp-fallback') toast.success('PDF descargado · adjuntalo en WhatsApp Web')
+            else if (result === 'download-only') toast.info('PDF descargado (cargá un teléfono para abrir WhatsApp)')
+            else if (result === 'error') toast.error('No se pudo generar el recibo')
+          },
+        },
+      })
     }
     onOpenChange(false)
     onPaid()

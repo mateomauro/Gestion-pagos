@@ -12,7 +12,9 @@ export interface ReceiptInput {
   receiptId?: string
 }
 
-export async function generateReceiptPDF(input: ReceiptInput) {
+// Construye el PDF y devuelve { blob, filename } sin tocar el filesystem.
+// Usado por shareReceipt (Web Share API) y por generateReceiptPDF (download).
+export async function buildReceiptPDF(input: ReceiptInput): Promise<{ blob: Blob; filename: string }> {
   const { jsPDF } = await import('jspdf')
   const doc = new jsPDF({ format: 'a5', unit: 'mm' })
 
@@ -94,5 +96,20 @@ export async function generateReceiptPDF(input: ReceiptInput) {
   doc.text('Generado con CobroGest', pageWidth / 2, pageHeight - 10, { align: 'center' })
 
   const safeName = input.clientName.replace(/[^a-zA-Z0-9]/g, '_')
-  doc.save(`recibo_${safeName}_${shortId}.pdf`)
+  const filename = `recibo_${safeName}_${shortId}.pdf`
+  const blob = doc.output('blob') as Blob
+  return { blob, filename }
+}
+
+// Genera el PDF y dispara la descarga (mantiene backward compat).
+export async function generateReceiptPDF(input: ReceiptInput) {
+  const { blob, filename } = await buildReceiptPDF(input)
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
 }

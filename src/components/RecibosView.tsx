@@ -1,7 +1,9 @@
 import { useMemo, useState } from 'react'
-import { Download, Receipt, Search } from 'lucide-react'
+import { Download, Receipt, Search, Send } from 'lucide-react'
+import { toast } from 'sonner'
 import { usePagos } from '@/lib/usePagos'
 import { generateReceiptPDF } from '@/lib/receiptPdf'
+import { shareReceiptViaWhatsApp } from '@/lib/shareReceipt'
 import { formatCurrency, getInitials } from '@/lib/utils'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -19,15 +21,30 @@ export function RecibosView() {
 
   const totalCobrado = filtered.reduce((s, p) => s + p.monto_pagado, 0)
 
+  const buildReceiptInput = (p: typeof pagos[number]) => ({
+    clientName: p.cliente_nombre ?? 'Cliente eliminado',
+    service: p.cliente_servicio ?? '-',
+    amount: p.monto_pagado,
+    method: p.metodo_pago || 'Efectivo',
+    paymentDate: new Date(p.fecha_pago),
+    receiptId: p.id,
+  })
+
   const downloadPdf = (p: typeof pagos[number]) => {
-    generateReceiptPDF({
-      clientName: p.cliente_nombre ?? 'Cliente eliminado',
-      service: p.cliente_servicio ?? '-',
-      amount: p.monto_pagado,
-      method: p.metodo_pago || 'Efectivo',
-      paymentDate: new Date(p.fecha_pago),
-      receiptId: p.id,
+    generateReceiptPDF(buildReceiptInput(p))
+  }
+
+  const sharePdf = async (p: typeof pagos[number]) => {
+    const t = toast.loading('Generando recibo…')
+    const result = await shareReceiptViaWhatsApp({
+      receipt: buildReceiptInput(p),
+      phone: p.cliente_telefono ?? undefined,
     })
+    toast.dismiss(t)
+    if (result === 'native') toast.success('Recibo compartido')
+    else if (result === 'whatsapp-fallback') toast.success('PDF descargado · adjuntalo en WhatsApp Web')
+    else if (result === 'download-only') toast.info('PDF descargado (el cliente no tiene teléfono cargado)')
+    else if (result === 'error') toast.error('No se pudo generar el recibo')
   }
 
   return (
@@ -60,7 +77,7 @@ export function RecibosView() {
       </div>
 
       <div className="rounded-xl border border-border overflow-hidden">
-        <div className="grid grid-cols-[1.2fr_minmax(180px,1.5fr)_1fr_1fr_1fr_auto] gap-x-4 px-4 py-3 border-b border-border bg-muted/40 text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
+        <div className="grid grid-cols-[1.2fr_minmax(180px,1.5fr)_1fr_1fr_1fr_minmax(180px,auto)] gap-x-4 px-4 py-3 border-b border-border bg-muted/40 text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
           <div>Fecha y hora</div>
           <div>Cliente</div>
           <div>Servicio</div>
@@ -72,7 +89,7 @@ export function RecibosView() {
         {loading ? (
           <div className="divide-y divide-border/60">
             {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="grid grid-cols-[1.2fr_minmax(180px,1.5fr)_1fr_1fr_1fr_auto] gap-x-4 items-center px-4 py-3">
+              <div key={i} className="grid grid-cols-[1.2fr_minmax(180px,1.5fr)_1fr_1fr_1fr_minmax(180px,auto)] gap-x-4 items-center px-4 py-3">
                 <div className="flex flex-col gap-1.5">
                   <Skeleton className="h-3.5 w-24" />
                   <Skeleton className="h-3 w-16" />
@@ -84,7 +101,10 @@ export function RecibosView() {
                 <Skeleton className="h-4 w-24" />
                 <Skeleton className="h-4 w-20" />
                 <Skeleton className="h-4 w-20" />
-                <Skeleton className="h-8 w-16 rounded-md" />
+                <div className="flex items-center justify-end gap-1.5">
+                  <Skeleton className="h-8 w-20 rounded-md" />
+                  <Skeleton className="h-8 w-14 rounded-md" />
+                </div>
               </div>
             ))}
           </div>
@@ -108,7 +128,7 @@ export function RecibosView() {
             return (
               <div
                 key={p.id}
-                className="grid grid-cols-[1.2fr_minmax(180px,1.5fr)_1fr_1fr_1fr_auto] gap-x-4 items-center px-4 py-3 border-b border-border/60 last:border-b-0 hover:bg-accent/30 transition-colors"
+                className="grid grid-cols-[1.2fr_minmax(180px,1.5fr)_1fr_1fr_1fr_minmax(180px,auto)] gap-x-4 items-center px-4 py-3 border-b border-border/60 last:border-b-0 hover:bg-accent/30 transition-colors"
               >
                 <div className="text-sm">
                   <div className="font-medium">{date.toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
@@ -123,9 +143,18 @@ export function RecibosView() {
                 <div className="text-sm text-foreground/80 truncate">{p.cliente_servicio ?? '-'}</div>
                 <div className="text-sm text-muted-foreground">{p.metodo_pago || '-'}</div>
                 <div className="text-sm font-semibold text-success tabular-nums">+ {formatCurrency(p.monto_pagado)}</div>
-                <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => downloadPdf(p)}>
-                  <Download className="h-3.5 w-3.5" /> PDF
-                </Button>
+                <div className="flex items-center justify-end gap-1.5">
+                  <Button
+                    variant="outline" size="sm" className="h-8 text-xs"
+                    onClick={() => sharePdf(p)}
+                    title={p.cliente_telefono ? 'Enviar por WhatsApp' : 'Enviar (cliente sin teléfono)'}
+                  >
+                    <Send className="h-3.5 w-3.5" /> Enviar
+                  </Button>
+                  <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => downloadPdf(p)} title="Descargar PDF">
+                    <Download className="h-3.5 w-3.5" /> PDF
+                  </Button>
+                </div>
               </div>
             )
           })

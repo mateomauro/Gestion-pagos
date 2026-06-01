@@ -10,6 +10,7 @@ export interface Pago {
   fecha_pago: string // ISO timestamp
   cliente_nombre: string | null
   cliente_servicio: string | null
+  cliente_telefono: string | null
 }
 
 // Todos los pagos del usuario (para vista Recibos)
@@ -27,7 +28,7 @@ export function usePagos() {
       .from('pagos')
       .select(`
         id, cliente_id, monto_pagado, metodo_pago, fecha_pago,
-        clientes ( nombre, servicio )
+        clientes ( nombre, servicio, telefono )
       `)
       .eq('usuario_id', user.id)
       .order('fecha_pago', { ascending: false })
@@ -42,6 +43,7 @@ export function usePagos() {
       fecha_pago: row.fecha_pago,
       cliente_nombre: row.clientes?.nombre ?? null,
       cliente_servicio: row.clientes?.servicio ?? null,
+      cliente_telefono: row.clientes?.telefono ?? null,
     }))
 
     setPagos(mapped); setLoading(false)
@@ -75,7 +77,7 @@ export function usePagosByClient(clienteId: string | null) {
         id: r.id, cliente_id: r.cliente_id,
         monto_pagado: Number(r.monto_pagado),
         metodo_pago: r.metodo_pago, fecha_pago: r.fecha_pago,
-        cliente_nombre: null, cliente_servicio: null,
+        cliente_nombre: null, cliente_servicio: null, cliente_telefono: null,
       })))
       setLoading(false)
     })()
