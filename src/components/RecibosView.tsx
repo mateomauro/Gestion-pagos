@@ -77,7 +77,8 @@ export function RecibosView() {
       </div>
 
       <div className="rounded-xl border border-border overflow-hidden">
-        <div className="grid grid-cols-[1.2fr_minmax(180px,1.5fr)_1fr_1fr_1fr_minmax(180px,auto)] gap-x-4 px-4 py-3 border-b border-border bg-muted/40 text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
+        {/* Header — solo desktop */}
+        <div className="hidden md:grid grid-cols-[1.2fr_minmax(180px,1.5fr)_1fr_1fr_1fr_minmax(180px,auto)] gap-x-4 px-4 py-3 border-b border-border bg-muted/40 text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
           <div>Fecha y hora</div>
           <div>Cliente</div>
           <div>Servicio</div>
@@ -89,21 +90,42 @@ export function RecibosView() {
         {loading ? (
           <div className="divide-y divide-border/60">
             {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="grid grid-cols-[1.2fr_minmax(180px,1.5fr)_1fr_1fr_1fr_minmax(180px,auto)] gap-x-4 items-center px-4 py-3">
-                <div className="flex flex-col gap-1.5">
-                  <Skeleton className="h-3.5 w-24" />
-                  <Skeleton className="h-3 w-16" />
+              <div key={i}>
+                {/* Skeleton mobile */}
+                <div className="md:hidden p-4 flex flex-col gap-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-2.5">
+                      <Skeleton className="h-9 w-9 rounded-full" />
+                      <div className="flex flex-col gap-1.5">
+                        <Skeleton className="h-4 w-28" />
+                        <Skeleton className="h-3 w-20" />
+                      </div>
+                    </div>
+                    <Skeleton className="h-4 w-20" />
+                  </div>
+                  <Skeleton className="h-3 w-40" />
+                  <div className="flex gap-2">
+                    <Skeleton className="h-9 flex-1 rounded-md" />
+                    <Skeleton className="h-9 flex-1 rounded-md" />
+                  </div>
                 </div>
-                <div className="flex items-center gap-2.5">
-                  <Skeleton className="h-8 w-8 rounded-full" />
-                  <Skeleton className="h-4 w-28" />
-                </div>
-                <Skeleton className="h-4 w-24" />
-                <Skeleton className="h-4 w-20" />
-                <Skeleton className="h-4 w-20" />
-                <div className="flex items-center justify-end gap-1.5">
-                  <Skeleton className="h-8 w-20 rounded-md" />
-                  <Skeleton className="h-8 w-14 rounded-md" />
+                {/* Skeleton desktop */}
+                <div className="hidden md:grid grid-cols-[1.2fr_minmax(180px,1.5fr)_1fr_1fr_1fr_minmax(180px,auto)] gap-x-4 items-center px-4 py-3">
+                  <div className="flex flex-col gap-1.5">
+                    <Skeleton className="h-3.5 w-24" />
+                    <Skeleton className="h-3 w-16" />
+                  </div>
+                  <div className="flex items-center gap-2.5">
+                    <Skeleton className="h-8 w-8 rounded-full" />
+                    <Skeleton className="h-4 w-28" />
+                  </div>
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-4 w-20" />
+                  <Skeleton className="h-4 w-20" />
+                  <div className="flex items-center justify-end gap-1.5">
+                    <Skeleton className="h-8 w-20 rounded-md" />
+                    <Skeleton className="h-8 w-14 rounded-md" />
+                  </div>
                 </div>
               </div>
             ))}
@@ -125,35 +147,82 @@ export function RecibosView() {
         ) : (
           filtered.map(p => {
             const date = new Date(p.fecha_pago)
+            const fechaCorta = date.toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' })
+            const hora = date.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })
+            const nombre = p.cliente_nombre ?? 'Cliente eliminado'
+            const servicio = p.cliente_servicio ?? '-'
+            const metodo = p.metodo_pago || '-'
+
             return (
-              <div
-                key={p.id}
-                className="grid grid-cols-[1.2fr_minmax(180px,1.5fr)_1fr_1fr_1fr_minmax(180px,auto)] gap-x-4 items-center px-4 py-3 border-b border-border/60 last:border-b-0 hover:bg-accent/30 transition-colors"
-              >
-                <div className="text-sm">
-                  <div className="font-medium">{date.toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
-                  <div className="text-xs text-muted-foreground">{date.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })} hs</div>
-                </div>
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="grid place-items-center h-8 w-8 rounded-full bg-primary/15 text-primary text-xs font-semibold shrink-0">
-                    {getInitials(p.cliente_nombre ?? '?')}
+              <div key={p.id} className="border-b border-border/60 last:border-b-0 hover:bg-accent/30 transition-colors">
+                {/* Card — mobile */}
+                <div className="md:hidden p-4 flex flex-col gap-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="grid place-items-center h-9 w-9 rounded-full bg-primary/15 text-primary text-xs font-semibold shrink-0">
+                        {getInitials(nombre)}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-sm font-semibold truncate">{nombre}</div>
+                        <div className="text-xs text-muted-foreground truncate">{servicio}</div>
+                      </div>
+                    </div>
+                    <div className="text-sm font-semibold text-success tabular-nums shrink-0">
+                      + {formatCurrency(p.monto_pagado)}
+                    </div>
                   </div>
-                  <span className="text-sm font-medium truncate">{p.cliente_nombre ?? 'Cliente eliminado'}</span>
+
+                  <div className="text-xs text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <span>{fechaCorta}</span>
+                    <span aria-hidden>·</span>
+                    <span>{hora} hs</span>
+                    <span aria-hidden>·</span>
+                    <span>{metodo}</span>
+                  </div>
+
+                  <div className="flex gap-2 pt-1">
+                    <Button
+                      variant="outline" size="sm" className="flex-1 h-9 text-xs"
+                      onClick={() => sharePdf(p)}
+                    >
+                      <Send className="h-3.5 w-3.5" /> Enviar
+                    </Button>
+                    <Button
+                      variant="outline" size="sm" className="flex-1 h-9 text-xs"
+                      onClick={() => downloadPdf(p)}
+                    >
+                      <Download className="h-3.5 w-3.5" /> PDF
+                    </Button>
+                  </div>
                 </div>
-                <div className="text-sm text-foreground/80 truncate">{p.cliente_servicio ?? '-'}</div>
-                <div className="text-sm text-muted-foreground">{p.metodo_pago || '-'}</div>
-                <div className="text-sm font-semibold text-success tabular-nums">+ {formatCurrency(p.monto_pagado)}</div>
-                <div className="flex items-center justify-end gap-1.5">
-                  <Button
-                    variant="outline" size="sm" className="h-8 text-xs"
-                    onClick={() => sharePdf(p)}
-                    title={p.cliente_telefono ? 'Enviar por WhatsApp' : 'Enviar (cliente sin teléfono)'}
-                  >
-                    <Send className="h-3.5 w-3.5" /> Enviar
-                  </Button>
-                  <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => downloadPdf(p)} title="Descargar PDF">
-                    <Download className="h-3.5 w-3.5" /> PDF
-                  </Button>
+
+                {/* Row — desktop */}
+                <div className="hidden md:grid grid-cols-[1.2fr_minmax(180px,1.5fr)_1fr_1fr_1fr_minmax(180px,auto)] gap-x-4 items-center px-4 py-3">
+                  <div className="text-sm">
+                    <div className="font-medium">{fechaCorta}</div>
+                    <div className="text-xs text-muted-foreground">{hora} hs</div>
+                  </div>
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="grid place-items-center h-8 w-8 rounded-full bg-primary/15 text-primary text-xs font-semibold shrink-0">
+                      {getInitials(nombre)}
+                    </div>
+                    <span className="text-sm font-medium truncate">{nombre}</span>
+                  </div>
+                  <div className="text-sm text-foreground/80 truncate">{servicio}</div>
+                  <div className="text-sm text-muted-foreground">{metodo}</div>
+                  <div className="text-sm font-semibold text-success tabular-nums">+ {formatCurrency(p.monto_pagado)}</div>
+                  <div className="flex items-center justify-end gap-1.5">
+                    <Button
+                      variant="outline" size="sm" className="h-8 text-xs"
+                      onClick={() => sharePdf(p)}
+                      title={p.cliente_telefono ? 'Enviar por WhatsApp' : 'Enviar (cliente sin teléfono)'}
+                    >
+                      <Send className="h-3.5 w-3.5" /> Enviar
+                    </Button>
+                    <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => downloadPdf(p)} title="Descargar PDF">
+                      <Download className="h-3.5 w-3.5" /> PDF
+                    </Button>
+                  </div>
                 </div>
               </div>
             )
